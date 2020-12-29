@@ -48,7 +48,7 @@ func TestMutexStack(t *testing.T) {
 }
 
 func BenchmarkMutexStack(b *testing.B) {
-	length := 1 << 2
+	length := 1 << 12
 	inputs := make([]int, length)
 
 	for i := 0; i < length; i++ {
@@ -56,6 +56,31 @@ func BenchmarkMutexStack(b *testing.B) {
 	}
 
 	s := newMutextStack()
+	b.ResetTimer()
+
+	var cnt int64
+	b.RunParallel(func(p *testing.PB) {
+		for p.Next() {
+			i := int(atomic.AddInt64(&cnt, 1)-1) % length
+			v := inputs[i]
+			if v >= 0 {
+				s.Push(v)
+			} else {
+				s.Pop()
+			}
+		}
+	})
+}
+
+func BenchmarkLockfreeStack(b *testing.B) {
+	length := 1 << 12
+	inputs := make([]int, length)
+
+	for i := 0; i < length; i++ {
+		inputs = append(inputs, rand.Int())
+	}
+
+	s := NewStack()
 	b.ResetTimer()
 
 	var cnt int64
